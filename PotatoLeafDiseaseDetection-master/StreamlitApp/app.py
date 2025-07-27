@@ -288,4 +288,4 @@ if __name__=="__main__":
     
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")
-    st.write("Made with ❤️ by Shubham Srivastava")
+    st.write("Made with ❤️ by Vignesh Parmar")

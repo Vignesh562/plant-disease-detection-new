@@ -8,22 +8,18 @@ from PIL import Image, UnidentifiedImageError
 from Home import home
 from About import about
 import os
-
+import pandas as pd
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
+HISTORY_PATH = os.path.join(BASE_DIR, "prediction_history.csv")
 
-# Load the trained custom CNN model without compiling
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# Load MobileNetV2 for plant/leaf validation
 mobilenet_model = MobileNetV2(weights="imagenet")
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
-# Check if image is likely a plant using MobileNetV2
-PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
-# Treatment and description data
 disease_info = {
     "Early Blight": {
         "description": "Early blight is a common potato disease caused by the fungus *Alternaria solani*. It causes dark spots on older leaves.",
@@ -39,7 +35,6 @@ disease_info = {
     }
 }
 
-# Keywords to check in predictions
 PLANT_KEYWORDS = [
     "plant", "leaf", "tree", "flower", "maize", "corn", "potato",
     "leaves", "foliage", "green", "branch", "bush", "grass", "crop", "vegetable", "shrub"
@@ -52,12 +47,30 @@ def is_plant_image(img):
     img_array = preprocess_input(img_array)
 
     preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=5)[0]
+    decoded = decode_predictions(preds, top=10)[0]
     labels = [label.lower() for (_, label, _) in decoded]
-    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
-        return True
+    confidences = [score for (_, _, score) in decoded]
+
+    for label, score in zip(labels, confidences):
+        for keyword in PLANT_KEYWORDS:
+            if keyword in label and score > 0.1:
+                return True
     return False
 
+def log_prediction(image_name, prediction, confidence):
+    df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],
+                      columns=["Timestamp", "Image", "Prediction", "Confidence"])
+    if not os.path.exists(HISTORY_PATH):
+        df.to_csv(HISTORY_PATH, index=False)
+    else:
+        df.to_csv(HISTORY_PATH, mode='a', header=False, index=False)
+
+def show_history():
+    if os.path.exists(HISTORY_PATH):
+        df = pd.read_csv(HISTORY_PATH)
+        st.dataframe(df[::-1], use_container_width=True)
+    else:
+        st.info("No prediction history available yet.")
 
 def upload():
     st.markdown("""
@@ -83,23 +96,21 @@ def upload():
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
-
             disease = class_names[class_idx]
+            confidence = predictions[0][class_idx] * 100
 
-            st.markdown("""
+            log_prediction(uploaded_file.name, disease, confidence)
+
+            st.markdown(f"""
             <div style='padding: 1rem; background-color: #e8f5e9; border-radius: 10px;'>
-                <h4>🧪 Prediction: <span style='color: #2e7d32;'>%s</span></h4>
-                <p><strong>Confidence:</strong> %.2f%%</p>
+                <h4>🧪 Prediction: <span style='color: #2e7d32;'>{disease}</span></h4>
+                <p><strong>Confidence:</strong> {confidence:.2f}%</p>
             </div>
-            """ % (disease, predictions[0][class_idx]*100), unsafe_allow_html=True)
-
-            st.markdown("""
             <h4>📖 Disease Description</h4>
-            <p>%s</p>
+            <p>{disease_info[disease]['description']}</p>
             <h4>💊 Treatment Suggestions</h4>
-            <p>%s</p>
-            """ % (disease_info[disease]["description"], disease_info[disease]["treatment"]), unsafe_allow_html=True)
-
+            <p>{disease_info[disease]['treatment']}</p>
+            """, unsafe_allow_html=True)
         except Exception as e:
             st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
 
@@ -123,23 +134,21 @@ def camera():
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
-
             disease = class_names[class_idx]
+            confidence = predictions[0][class_idx] * 100
 
-            st.markdown("""
+            log_prediction("Camera Capture", disease, confidence)
+
+            st.markdown(f"""
             <div style='padding: 1rem; background-color: #e8f5e9; border-radius: 10px;'>
-                <h4>🧪 Prediction: <span style='color: #2e7d32;'>%s</span></h4>
-                <p><strong>Confidence:</strong> %.2f%%</p>
+                <h4>🧪 Prediction: <span style='color: #2e7d32;'>{disease}</span></h4>
+                <p><strong>Confidence:</strong> {confidence:.2f}%</p>
             </div>
-            """ % (disease, predictions[0][class_idx]*100), unsafe_allow_html=True)
-
-            st.markdown("""
             <h4>📖 Disease Description</h4>
-            <p>%s</p>
+            <p>{disease_info[disease]['description']}</p>
             <h4>💊 Treatment Suggestions</h4>
-            <p>%s</p>
-            """ % (disease_info[disease]["description"], disease_info[disease]["treatment"]), unsafe_allow_html=True)
-
+            <p>{disease_info[disease]['treatment']}</p>
+            """, unsafe_allow_html=True)
         except Exception as e:
             st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
 
@@ -166,12 +175,14 @@ if __name__ == "__main__":
         </style>
         <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
         """, unsafe_allow_html=True)
-        option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "About"], index=None)
+        option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"], index=None)
 
     if option == "Upload Image":
         upload()
     elif option == "Use Camera":
         camera()
+    elif option == "View History":
+        show_history()
     elif option == "About":
         about()
 

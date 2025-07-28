@@ -21,7 +21,7 @@ mobilenet_model = MobileNetV2(weights="imagenet")
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
 # Check if image is likely a plant using MobileNetV2
-PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower"]
+PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 def is_plant_image(img):
     img_resized = img.resize((224, 224))
@@ -29,11 +29,11 @@ def is_plant_image(img):
     img_array = np.expand_dims(img_array, axis=0)
     img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array)
-    decoded = decode_predictions(preds, top=3)[0]
-    for _, label, _ in decoded:
-        if any(keyword in label.lower() for keyword in PLANT_KEYWORDS):
-            return True
+    preds = mobilenet_model.predict(img_array, verbose=0)
+    decoded = decode_predictions(preds, top=5)[0]
+    labels = [label.lower() for (_, label, _) in decoded]
+    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
+        return True
     return False
 
 def upload():
@@ -48,12 +48,12 @@ def upload():
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.error("❌ This doesn't look like a plant leaf. Please upload a clear image of a potato plant leaf.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:
             img_array = preprocess_image(img)
-            predictions = model.predict(img_array)
+            predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
 
             st.subheader("Prediction Results")
@@ -74,12 +74,12 @@ def camera():
         st.image(img, caption="Captured Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.error("❌ This doesn't look like a plant leaf. Please upload a clear image of a potato plant leaf.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:
             img_array = preprocess_image(img)
-            predictions = model.predict(img_array)
+            predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
 
             st.subheader("Prediction Results")

@@ -223,4 +223,4 @@ if __name__ == "__main__":
 
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")
-    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True) add one classifire that casify whether image is plan imgae or non-plan image 
+    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True) 

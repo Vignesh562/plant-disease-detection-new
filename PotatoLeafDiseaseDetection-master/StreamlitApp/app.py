@@ -1,3 +1,4 @@
+
 import streamlit as st
 import numpy as np
 import cv2
@@ -44,22 +45,8 @@ disease_info = {
     }
 }
 
-# ✅ New: Plant vs Non-Plant Classifier
-def is_plant_image(img):
-    img_resized = img.resize((224, 224))
-    img_array = image.img_to_array(img_resized)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=3)[0]
 
-    plant_keywords = ["plant", "leaf", "tree", "flower", "vegetable", "crop", "flora", "botanical"]
-
-    for _, label, _ in decoded:
-        if any(keyword in label.lower() for keyword in plant_keywords):
-            return True
-    return False
 
 def log_prediction(image_name, prediction, confidence):
     df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],
@@ -135,10 +122,7 @@ def upload():
 
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
-        if not is_plant_image(img):
-            st.warning("⚠️ This doesn't seem like a plant image. Please upload a clear photo of a leaf or plant.")
-            return
-
+        
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
@@ -176,7 +160,7 @@ def camera():
         st.image(img, caption="Captured Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.warning("⚠️ This doesn't seem like a plant image. Please try again with a proper leaf photo.")
+            st.warning("⚠️ This doesn't seem like a potato plant or leaf. Suggestions: Try maize, tomato, or other crop images.")
             return
 
         try:
@@ -226,7 +210,7 @@ if __name__ == "__main__":
         </style>
         <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
         """, unsafe_allow_html=True)
-        option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"])
+        option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"], index=None)
 
     if option == "Upload Image":
         upload()
@@ -239,4 +223,4 @@ if __name__ == "__main__":
 
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")
-    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True) add one classifire that casify whether image is plan imgae or non-plan image 

@@ -12,7 +12,7 @@ from collections import Counter
 import os 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "model", "custom_model.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 MODEL_PATH2 = os.path.join(BASE_DIR, "model", "Inception.h5")
 MODEL_PATH3 = os.path.join(BASE_DIR, "model", "ResNet.h5")
 

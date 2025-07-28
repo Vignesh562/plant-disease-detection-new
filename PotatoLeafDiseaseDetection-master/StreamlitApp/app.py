@@ -59,6 +59,7 @@ def is_plant_image(img):
     if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
         return True
     return False
+
 def log_prediction(image_name, prediction, confidence):
     df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],
                       columns=["Timestamp", "Image", "Prediction", "Confidence"])
@@ -88,12 +89,14 @@ def upload():
         bg_style = "#121212"
         text_color = "#e0e0e0"
         desc_bg = "#1e1e1e"
-        pred_bg = "#2e7d32"
+        pred_bg = "#1e1e1e"
+        pred_text = "#a5d6a7"
     else:
         bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
         text_color = "#2E7D32"
         desc_bg = "#ffffff"
-        pred_bg = "#c8e6c9"
+        pred_bg = "#ffffff"
+        pred_text = "#2e7d32"
 
     st.markdown(f"""
     <style>
@@ -145,7 +148,7 @@ def upload():
             log_prediction(uploaded_file.name, disease, confidence)
 
             st.markdown(f"""
-            <div style='padding: 1.2rem; background: {pred_bg}; color: #1b5e20; border-left: 6px solid #2e7d32; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+            <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
                 <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
             </div>
@@ -185,11 +188,11 @@ def camera():
             log_prediction("Camera Capture", disease, confidence)
 
             st.markdown(f"""
-            <div style='padding: 1.2rem; background: #e8f5e9; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
-                <h3>🧪 Prediction: <span style='color: #1b5e20;'>{disease}</span></h3>
+            <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+                <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
             </div>
-            <div style='margin-top: 1.5em; background: #ffffff; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
+            <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
                 <h4>📖 Disease Description</h4>
                 <p>{disease_info[disease]['description']}</p>
                 <h4>💊 Treatment Suggestions</h4>

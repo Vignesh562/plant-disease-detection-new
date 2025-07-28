@@ -9,6 +9,7 @@ from Home import home
 from About import about
 import os
 
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 
@@ -20,6 +21,8 @@ mobilenet_model = MobileNetV2(weights="imagenet")
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
+# Check if image is likely a plant using MobileNetV2
+PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 # Treatment and description data
 disease_info = {
     "Early Blight": {
@@ -49,15 +52,12 @@ def is_plant_image(img):
     img_array = preprocess_input(img_array)
 
     preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=10)[0]
+    decoded = decode_predictions(preds, top=5)[0]
     labels = [label.lower() for (_, label, _) in decoded]
-    confidences = [score for (_, _, score) in decoded]
-
-    for label, score in zip(labels, confidences):
-        for keyword in PLANT_KEYWORDS:
-            if keyword in label and score > 0.1:
-                return True
+    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
+        return True
     return False
+
 
 def upload():
     st.markdown("""

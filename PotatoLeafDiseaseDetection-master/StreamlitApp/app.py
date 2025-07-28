@@ -83,14 +83,24 @@ def show_history():
         st.info("No prediction history available yet.")
 
 def upload():
-    st.markdown("""
+    dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
+
+    if dark_mode:
+        bg_style = "#121212"
+        text_color = "#e0e0e0"
+    else:
+        bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
+        text_color = "#2E7D32"
+
+    st.markdown(f"""
     <style>
         .reportview-container .main {{
-            background: linear-gradient(to right, #f0f9ff, #e0f7fa);
+            background: {bg_style};
             font-family: 'Segoe UI', sans-serif;
+            color: {text_color};
         }}
         h2, h3, h4 {{
-            color: #2E7D32;
+            color: {text_color};
         }}
         .stButton>button {{
             background-color: #4CAF50;

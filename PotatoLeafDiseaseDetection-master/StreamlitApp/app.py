@@ -43,20 +43,7 @@ disease_info = {
         "treatment": "No treatment necessary. Maintain regular monitoring to catch early signs of disease."
     }
 }
-def is_plant_image(img):
-    img_resized = img.resize((224, 224))
-    img_array = image.img_to_array(img_resized)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array)
-    decoded = decode_predictions(preds, top=3)[0]
-    plant_keywords = ['plant', 'leaf', 'tree', 'vegetable', 'flora']
-
-    for _, label, _ in decoded:
-        if any(keyword in label.lower() for keyword in plant_keywords):
-            return True
-    return False
 
 
 
@@ -134,10 +121,7 @@ def upload():
 
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
-        if not is_plant_image(img):
-            st.warning("⚠️ This doesn't seem like a potato plant or leaf. Suggestions: Try maize, tomato, or other crop images.")
-            return
-
+        
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)

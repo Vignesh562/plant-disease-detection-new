@@ -58,13 +58,22 @@ def is_plant_image(img):
 
         preds = mobilenet_model.predict(img_array, verbose=0)
         decoded = decode_predictions(preds, top=5)[0]
+
+        plant_match = False
+        fallback_match = False
+
         for (_, label, score) in decoded:
             label = label.lower()
-            if any(keyword in label for keyword in PLANT_KEYWORDS) and score > 0.20:
-                return True
+            if any(keyword in label for keyword in PLANT_KEYWORDS):
+                if score > 0.15:
+                    plant_match = True
+                elif score > 0.05:
+                    fallback_match = True
+
+        return plant_match or fallback_match
     except:
         return False
-    return False
+
 
 def log_prediction(image_name, prediction, confidence):
     df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],

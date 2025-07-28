@@ -84,9 +84,9 @@ def upload():
             st.success(f"Prediction: {disease}")
             st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
 
-            st.subheader("📖 Disease Description")
+            st.subheader("\ud83d\udcd6 Disease Description")
             st.write(disease_info[disease]["description"])
-            st.subheader("💊 Treatment Suggestions")
+            st.subheader("\ud83d\udcca Treatment Suggestions")
             st.write(disease_info[disease]["treatment"])
 
         except Exception as e:
@@ -117,9 +117,9 @@ def camera():
             st.success(f"Prediction: {disease}")
             st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
 
-            st.subheader("📖 Disease Description")
+            st.subheader("\ud83d\udcd6 Disease Description")
             st.write(disease_info[disease]["description"])
-            st.subheader("💊 Treatment Suggestions")
+            st.subheader("\ud83d\udcca Treatment Suggestions")
             st.write(disease_info[disease]["treatment"])
 
         except Exception as e:

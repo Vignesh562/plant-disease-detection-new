@@ -43,21 +43,21 @@ PLANT_KEYWORDS = [
 ]
 
 def is_plant_image(img):
-    img_resized = img.resize((224, 224))
-    img_array = image.img_to_array(img_resized)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
+    try:
+        img_resized = img.resize((224, 224))
+        img_array = image.img_to_array(img_resized)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=10)[0]  # Increase to top 10
-    labels = [label.lower() for (_, label, _) in decoded]
-    confidences = [score for (_, _, score) in decoded]
-
-    for label, score in zip(labels, confidences):
-        for keyword in PLANT_KEYWORDS:
-            if keyword in label and score > 0.1:  # 10% minimum confidence
+        preds = mobilenet_model.predict(img_array, verbose=0)
+        decoded = decode_predictions(preds, top=10)[0]  # top 10 predictions
+        for _, label, score in decoded:
+            if any(keyword in label.lower() for keyword in PLANT_KEYWORDS) and score > 0.05:
                 return True
-    return False
+        return False
+    except Exception as e:
+        print("Validation error:", e)
+        return False
 
 def upload():
     uploaded_file = st.file_uploader("Upload a potato leaf image", type=["jpg", "png", "jpeg"])
@@ -84,9 +84,9 @@ def upload():
             st.success(f"Prediction: {disease}")
             st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
 
-            st.subheader("\ud83d\udcd6 Disease Description")
+            st.subheader("📖 Disease Description")
             st.write(disease_info[disease]["description"])
-            st.subheader("\ud83d\udcca Treatment Suggestions")
+            st.subheader("📊 Treatment Suggestions")
             st.write(disease_info[disease]["treatment"])
 
         except Exception as e:
@@ -117,9 +117,9 @@ def camera():
             st.success(f"Prediction: {disease}")
             st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
 
-            st.subheader("\ud83d\udcd6 Disease Description")
+            st.subheader("📖 Disease Description")
             st.write(disease_info[disease]["description"])
-            st.subheader("\ud83d\udcca Treatment Suggestions")
+            st.subheader("📊 Treatment Suggestions")
             st.write(disease_info[disease]["treatment"])
 
         except Exception as e:

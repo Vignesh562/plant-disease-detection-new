@@ -18,10 +18,11 @@ model = tf.keras.models.load_model(MODEL_PATH, compile=False)
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
 # Check if image is likely a valid plant leaf
+# Relaxed validation threshold
 def is_probably_leaf(image_array):
-    if image_array.std() < 5:
+    if image_array.std() < 2:
         return False
-    if image_array.mean() > 240 or image_array.mean() < 15:
+    if image_array.mean() > 250 or image_array.mean() < 5:
         return False
     return True
 
@@ -34,8 +35,7 @@ def upload():
         img_array = preprocess_image(img)
 
         if not is_probably_leaf(img_array):
-            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear image of a potato leaf.")
-            return
+            st.warning("⚠️ This image may not be a valid potato leaf. Prediction might be inaccurate.")
 
         predictions = model.predict(img_array)
         class_idx = np.argmax(predictions[0])
@@ -57,8 +57,7 @@ def camera():
         img_array = preprocess_image(img)
 
         if not is_probably_leaf(img_array):
-            st.error("❌ This doesn't look like a valid plant leaf. Please try again with a clear leaf image.")
-            return
+            st.warning("⚠️ This image may not be a valid potato leaf. Prediction might be inaccurate.")
 
         predictions = model.predict(img_array)
         class_idx = np.argmax(predictions[0])

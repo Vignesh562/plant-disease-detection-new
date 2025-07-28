@@ -35,19 +35,24 @@ disease_info = {
     }
 }
 
-PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
+PLANT_KEYWORDS = ["plant", "leaf", "leaves", "tree", "flower", "foliage", "potato", "crop", "vegetable", "flora"]
 
+# Enhanced plant/leaf image validation with label confidence
 def is_plant_image(img):
-    img_resized = img.resize((224, 224))
-    img_array = image.img_to_array(img_resized)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
+    try:
+        img_resized = img.resize((224, 224))
+        img_array = image.img_to_array(img_resized)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=5)[0]
-    labels = [label.lower() for (_, label, _) in decoded]
-    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
-        return True
+        preds = mobilenet_model.predict(img_array, verbose=0)
+        decoded = decode_predictions(preds, top=5)[0]
+        for (_, label, score) in decoded:
+            label = label.lower()
+            if any(keyword in label for keyword in PLANT_KEYWORDS) and score > 0.20:
+                return True
+    except:
+        return False
     return False
 
 def log_prediction(image_name, prediction, confidence):

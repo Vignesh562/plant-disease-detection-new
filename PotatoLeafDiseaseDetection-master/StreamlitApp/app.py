@@ -1,3 +1,4 @@
+import streamlit as st
 import numpy as np
 import cv2
 import tensorflow as tf
@@ -5,6 +6,11 @@ from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_i
 from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from Home import home
+from About import about
+import os 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 
 # Load the trained custom CNN model without compiling
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
@@ -14,12 +20,9 @@ mobilenet_model = MobileNetV2(weights="imagenet")
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
-# Check if prediction is likely a plant (confidence > threshold and not skewed)
-def is_probably_plant(prediction, threshold=0.6):
-    top_confidence = np.max(prediction)
-    return top_confidence > threshold
 # Check if image is likely a plant using MobileNetV2
 PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower"]
+PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 def is_plant_image(img):
     img_resized = img.resize((224, 224))
@@ -32,54 +35,43 @@ def is_plant_image(img):
     for _, label, _ in decoded:
         if any(keyword in label.lower() for keyword in PLANT_KEYWORDS):
             return True
+    preds = mobilenet_model.predict(img_array, verbose=0)
+    decoded = decode_predictions(preds, top=5)[0]
+    labels = [label.lower() for (_, label, _) in decoded]
+    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
+        return True
     return False
 
 def upload():
-    uploaded_file = st.file_uploader("Upload a potato leaf image", type=["jpg", "png", "jpeg"])
-
 
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
         if not is_plant_image(img):
             st.error("❌ This doesn't look like a plant leaf. Please upload a clear image of a potato plant leaf.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array)
+            predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
 
-            if is_probably_plant(predictions[0]):
-                st.subheader("Prediction Results")
-                st.success(f"Prediction: {class_names[class_idx]}")
-                st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}")
-            else:
-                st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear image of a potato leaf.")
             st.subheader("Prediction Results")
-            st.success(f"Prediction: {class_names[class_idx]}")
-            st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
-        except Exception as e:
-            st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
-
-
 
         st.image(img, caption="Captured Image", use_container_width=True)
 
         if not is_plant_image(img):
             st.error("❌ This doesn't look like a plant leaf. Please upload a clear image of a potato plant leaf.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array)
+            predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
 
-            if is_probably_plant(predictions[0]):
-                st.subheader("Prediction Results")
-                st.success(f"Prediction: {class_names[class_idx]}")
-                st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}")
-            else:
-                st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear image of a potato leaf.")
             st.subheader("Prediction Results")
             st.success(f"Prediction: {class_names[class_idx]}")
             st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")

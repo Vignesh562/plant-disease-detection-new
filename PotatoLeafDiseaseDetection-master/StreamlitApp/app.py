@@ -47,6 +47,7 @@ disease_info = {
 
 PLANT_KEYWORDS = ["plant", "leaf", "leaves", "tree", "flower", "foliage", "potato", "crop", "vegetable", "flora"]
 
+
 # Enhanced plant/leaf image validation with label confidence
 def is_plant_image(img):
     try:

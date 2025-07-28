@@ -12,8 +12,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 
-# Load the trained custom CNN model
-model = tf.keras.models.load_model(MODEL_PATH)
+# Load the trained custom CNN model without compiling
+model = tf.keras.models.load_model(MODEL_PATH, compile=False)
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 

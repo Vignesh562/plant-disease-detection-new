@@ -5,7 +5,7 @@ from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_i
 from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from Home import home
-@@ -14,12 +15,26 @@
+
 # Load the trained custom CNN model without compiling
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
 

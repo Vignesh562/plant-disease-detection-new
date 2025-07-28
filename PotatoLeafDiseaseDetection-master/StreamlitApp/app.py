@@ -36,7 +36,7 @@ def is_plant_image(img):
 
 def upload():
     uploaded_file = st.file_uploader("Upload a potato leaf image", type=["jpg", "png", "jpeg"])
-@@ -32,17 +47,18 @@
+
 
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
@@ -61,7 +61,7 @@ def upload():
         except Exception as e:
             st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
 
-@@ -57,46 +73,47 @@
+
 
         st.image(img, caption="Captured Image", use_container_width=True)
 

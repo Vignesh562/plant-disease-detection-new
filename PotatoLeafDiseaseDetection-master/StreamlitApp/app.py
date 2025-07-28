@@ -35,10 +35,7 @@ disease_info = {
     }
 }
 
-PLANT_KEYWORDS = [
-    "plant", "leaf", "tree", "flower", "maize", "corn", "potato",
-    "leaves", "foliage", "green", "branch", "bush", "grass", "crop", "vegetable", "shrub"
-]
+PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 def is_plant_image(img):
     img_resized = img.resize((224, 224))
@@ -47,14 +44,10 @@ def is_plant_image(img):
     img_array = preprocess_input(img_array)
 
     preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=10)[0]
+    decoded = decode_predictions(preds, top=5)[0]
     labels = [label.lower() for (_, label, _) in decoded]
-    confidences = [score for (_, _, score) in decoded]
-
-    for label, score in zip(labels, confidences):
-        for keyword in PLANT_KEYWORDS:
-            if keyword in label and score > 0.1:
-                return True
+    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
+        return True
     return False
 
 def log_prediction(image_name, prediction, confidence):
@@ -89,7 +82,7 @@ def upload():
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.warning("⚠️ This doesn't appear to be a valid plant or leaf image. Please try a different one.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:
@@ -127,7 +120,7 @@ def camera():
         st.image(img, caption="Captured Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.warning("⚠️ This doesn't appear to be a valid plant or leaf image. Please try again.")
+            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
 
         try:

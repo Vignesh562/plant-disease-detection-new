@@ -99,7 +99,7 @@ def preprocess_image(img):
 
 if __name__ == "__main__":
     if "page" not in st.session_state:
-        st.session_state.page = "home":
+        st.session_state.page = "home"
 
     if st.session_state.page == "home":
         home()

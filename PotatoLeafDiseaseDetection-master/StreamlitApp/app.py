@@ -21,7 +21,6 @@ mobilenet_model = MobileNetV2(weights="imagenet")
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
-# Disease info with placeholders
 wikipedia.set_lang("en")
 
 def fetch_wiki_summary(title):
@@ -45,9 +44,9 @@ disease_info = {
     }
 }
 
+# Check if image is likely a plant using MobileNetV2
 PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
-# Enhanced plant/leaf image validation with label confidence
 def is_plant_image(img):
     img_resized = img.resize((224, 224))
     img_array = image.img_to_array(img_resized)
@@ -77,7 +76,6 @@ def show_history():
             df = df[df['Prediction'].str.contains(search, case=False, na=False)]
         st.dataframe(df[::-1], use_container_width=True)
 
-        # Statistics
         st.markdown("### 📊 Prediction Statistics")
         stats = df['Prediction'].value_counts()
         st.bar_chart(stats)
@@ -86,8 +84,28 @@ def show_history():
 
 def upload():
     st.markdown("""
-    <h2 style='text-align: center; color: #4CAF50;'>🌿 Upload a Potato Leaf Image</h2>
-    <p style='text-align: center; color: #666;'>AI-powered leaf disease detection and treatment suggestions.</p>
+    <style>
+        .reportview-container .main {{
+            background: linear-gradient(to right, #f0f9ff, #e0f7fa);
+            font-family: 'Segoe UI', sans-serif;
+        }}
+        h2, h3, h4 {{
+            color: #2E7D32;
+        }}
+        .stButton>button {{
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }}
+        .stButton>button:hover {{
+            background-color: #45a049;
+        }}
+    </style>
+    <h2 style='text-align: center;'>🌿 Upload a Potato Leaf Image</h2>
+    <p style='text-align: center; color: #555;'>AI-powered leaf disease detection and treatment suggestions.</p>
     """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
@@ -114,11 +132,11 @@ def upload():
             log_prediction(uploaded_file.name, disease, confidence)
 
             st.markdown(f"""
-            <div style='padding: 1rem; background-color: #F1F8E9; border-left: 5px solid #4CAF50;'>
-                <h3>🧪 Prediction: <span style='color: #2E7D32;'>{disease}</span></h3>
+            <div style='padding: 1.2rem; background: #e8f5e9; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+                <h3>🧪 Prediction: <span style='color: #1b5e20;'>{disease}</span></h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
             </div>
-            <div style='margin-top: 1em;'>
+            <div style='margin-top: 1.5em; background: #ffffff; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
                 <h4>📖 Disease Description</h4>
                 <p>{disease_info[disease]['description']}</p>
                 <h4>💊 Treatment Suggestions</h4>

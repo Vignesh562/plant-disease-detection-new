@@ -45,35 +45,21 @@ disease_info = {
     }
 }
 
-PLANT_KEYWORDS = ["plant", "leaf", "leaves", "tree", "flower", "foliage", "potato", "crop", "vegetable", "flora"]
-
+PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 # Enhanced plant/leaf image validation with label confidence
 def is_plant_image(img):
-    try:
-        img_resized = img.resize((224, 224))
-        img_array = image.img_to_array(img_resized)
-        img_array = np.expand_dims(img_array, axis=0)
-        img_array = preprocess_input(img_array)
+    img_resized = img.resize((224, 224))
+    img_array = image.img_to_array(img_resized)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
 
-        preds = mobilenet_model.predict(img_array, verbose=0)
-        decoded = decode_predictions(preds, top=5)[0]
-
-        plant_match = False
-        fallback_match = False
-
-        for (_, label, score) in decoded:
-            label = label.lower()
-            if any(keyword in label for keyword in PLANT_KEYWORDS):
-                if score > 0.15:
-                    plant_match = True
-                elif score > 0.05:
-                    fallback_match = True
-
-        return plant_match or fallback_match
-    except:
-        return False
-
+    preds = mobilenet_model.predict(img_array, verbose=0)
+    decoded = decode_predictions(preds, top=5)[0]
+    labels = [label.lower() for (_, label, _) in decoded]
+    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
+        return True
+    return False
 
 def log_prediction(image_name, prediction, confidence):
     df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],

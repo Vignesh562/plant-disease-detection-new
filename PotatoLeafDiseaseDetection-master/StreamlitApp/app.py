@@ -7,37 +7,94 @@ from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from Home import home
 from About import about
-import os 
+import os
+import pandas as pd
+from datetime import datetime
+import wikipedia
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
+HISTORY_PATH = os.path.join(BASE_DIR, "prediction_history.csv")
 
-# Load the trained custom CNN model without compiling
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# Load MobileNetV2 for plant/leaf validation
 mobilenet_model = MobileNetV2(weights="imagenet")
 
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
-# Check if image is likely a plant using MobileNetV2
-PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
+# Disease info with placeholders
+wikipedia.set_lang("en")
 
+def fetch_wiki_summary(title):
+    try:
+        return wikipedia.summary(title, sentences=2)
+    except:
+        return "No Wikipedia summary found."
+
+disease_info = {
+    "Early Blight": {
+        "description": fetch_wiki_summary("Early blight"),
+        "treatment": "Use fungicides like chlorothalonil or mancozeb. Practice crop rotation and remove infected plant debris."
+    },
+    "Late Blight": {
+        "description": fetch_wiki_summary("Late blight"),
+        "treatment": "Apply fungicides like metalaxyl or cymoxanil. Remove and destroy infected plants. Avoid overhead irrigation."
+    },
+    "Healthy": {
+        "description": "No signs of disease detected on the potato leaf.",
+        "treatment": "No treatment necessary. Maintain regular monitoring to catch early signs of disease."
+    }
+}
+
+PLANT_KEYWORDS = ["plant", "leaf", "leaves", "tree", "flower", "foliage", "potato", "crop", "vegetable", "flora"]
+
+# Enhanced plant/leaf image validation with label confidence
 def is_plant_image(img):
-    img_resized = img.resize((224, 224))
-    img_array = image.img_to_array(img_resized)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
+    try:
+        img_resized = img.resize((224, 224))
+        img_array = image.img_to_array(img_resized)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = preprocess_input(img_array)
 
-    preds = mobilenet_model.predict(img_array, verbose=0)
-    decoded = decode_predictions(preds, top=5)[0]
-    labels = [label.lower() for (_, label, _) in decoded]
-    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
-        return True
+        preds = mobilenet_model.predict(img_array, verbose=0)
+        decoded = decode_predictions(preds, top=5)[0]
+        for (_, label, score) in decoded:
+            label = label.lower()
+            if any(keyword in label for keyword in PLANT_KEYWORDS) and score > 0.20:
+                return True
+    except:
+        return False
     return False
 
+def log_prediction(image_name, prediction, confidence):
+    df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],
+                      columns=["Timestamp", "Image", "Prediction", "Confidence"])
+    if not os.path.exists(HISTORY_PATH):
+        df.to_csv(HISTORY_PATH, index=False)
+    else:
+        df.to_csv(HISTORY_PATH, mode='a', header=False, index=False)
+
+def show_history():
+    if os.path.exists(HISTORY_PATH):
+        df = pd.read_csv(HISTORY_PATH)
+        search = st.text_input("🔍 Search by disease name")
+        if search:
+            df = df[df['Prediction'].str.contains(search, case=False, na=False)]
+        st.dataframe(df[::-1], use_container_width=True)
+
+        # Statistics
+        st.markdown("### 📊 Prediction Statistics")
+        stats = df['Prediction'].value_counts()
+        st.bar_chart(stats)
+    else:
+        st.info("No prediction history available yet.")
+
 def upload():
-    uploaded_file = st.file_uploader("Upload a potato leaf image", type=["jpg", "png", "jpeg"])
+    st.markdown("""
+    <h2 style='text-align: center; color: #4CAF50;'>🌿 Upload a Potato Leaf Image</h2>
+    <p style='text-align: center; color: #666;'>AI-powered leaf disease detection and treatment suggestions.</p>
+    """, unsafe_allow_html=True)
+
+    uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     if uploaded_file is not None:
         try:
             img = Image.open(uploaded_file).convert("RGB")
@@ -48,22 +105,36 @@ def upload():
         st.image(img, caption="Uploaded Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
+            st.warning("⚠️ This doesn't seem like a potato plant or leaf. Suggestions: Try maize, tomato, or other crop images.")
             return
 
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
+            disease = class_names[class_idx]
+            confidence = predictions[0][class_idx] * 100
 
-            st.subheader("Prediction Results")
-            st.success(f"Prediction: {class_names[class_idx]}")
-            st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
+            log_prediction(uploaded_file.name, disease, confidence)
+
+            st.markdown(f"""
+            <div style='padding: 1rem; background-color: #F1F8E9; border-left: 5px solid #4CAF50;'>
+                <h3>🧪 Prediction: <span style='color: #2E7D32;'>{disease}</span></h3>
+                <p><strong>Confidence:</strong> {confidence:.2f}%</p>
+            </div>
+            <div style='margin-top: 1em;'>
+                <h4>📖 Disease Description</h4>
+                <p>{disease_info[disease]['description']}</p>
+                <h4>💊 Treatment Suggestions</h4>
+                <p>{disease_info[disease]['treatment']}</p>
+            </div>
+            """, unsafe_allow_html=True)
         except Exception as e:
             st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
 
 def camera():
-    camera_image = st.camera_input("Capture a potato leaf image")
+    st.header("📸 Capture a Potato Leaf Image")
+    camera_image = st.camera_input("")
     if camera_image is not None:
         try:
             img = Image.open(camera_image).convert("RGB")
@@ -74,17 +145,30 @@ def camera():
         st.image(img, caption="Captured Image", use_container_width=True)
 
         if not is_plant_image(img):
-            st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
+            st.warning("⚠️ This doesn't seem like a potato plant or leaf. Suggestions: Try maize, tomato, or other crop images.")
             return
 
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
+            disease = class_names[class_idx]
+            confidence = predictions[0][class_idx] * 100
 
-            st.subheader("Prediction Results")
-            st.success(f"Prediction: {class_names[class_idx]}")
-            st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
+            log_prediction("Camera Capture", disease, confidence)
+
+            st.markdown(f"""
+            <div style='padding: 1rem; background-color: #F1F8E9; border-left: 5px solid #4CAF50;'>
+                <h3>🧪 Prediction: <span style='color: #2E7D32;'>{disease}</span></h3>
+                <p><strong>Confidence:</strong> {confidence:.2f}%</p>
+            </div>
+            <div style='margin-top: 1em;'>
+                <h4>📖 Disease Description</h4>
+                <p>{disease_info[disease]['description']}</p>
+                <h4>💊 Treatment Suggestions</h4>
+                <p>{disease_info[disease]['treatment']}</p>
+            </div>
+            """, unsafe_allow_html=True)
         except Exception as e:
             st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
 
@@ -104,16 +188,24 @@ if __name__ == "__main__":
     if st.session_state.page == "home":
         home()
 
-    st.sidebar.header("Options")
-    option = st.sidebar.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "About"], index=None)
+    with st.sidebar:
+        st.markdown("""
+        <style>
+        .sidebar .sidebar-content {padding: 1rem;}
+        </style>
+        <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
+        """, unsafe_allow_html=True)
+        option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"], index=None)
 
     if option == "Upload Image":
         upload()
     elif option == "Use Camera":
         camera()
+    elif option == "View History":
+        show_history()
     elif option == "About":
         about()
 
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")
-    st.write("Made with ❤️ by Vignesh Parmar")
+    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True)

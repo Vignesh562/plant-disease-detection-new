@@ -47,11 +47,13 @@ def camera():
         st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}")
 
 def preprocess_image(img):
+    img = img.convert("RGB")  # Ensures 3 channels
     img = img.resize((256, 256))
     img_array = np.array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = img_array / 255.0
     return img_array
+
 
 if __name__ == "__main__":
     if "page" not in st.session_state:

@@ -1,9 +1,7 @@
-
 import streamlit as st
 import numpy as np
 import cv2
 import tensorflow as tf
-from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from Home import home
@@ -12,43 +10,49 @@ import os
 import pandas as pd
 from datetime import datetime
 import wikipedia
-from appwrite_config import database, account
+from appwrite_config import client
+from appwrite.services.account import Account
+from appwrite.services.databases import Databases
+from appwrite.exception import AppwriteException
 
-# Example: Use Appwrite here
-# You can now access database.create_document(), etc.
+# Appwrite setup
 account = Account(client)
-
-# To create a user
-account.create(email="email@example.com", password="securepassword")
-
-# To login
-account.create_email_session(email="email@example.com", password="securepassword")
-
-#Database
 databases = Databases(client)
 
-databases.create_document(
-    database_id="your-db-id",
-    collection_id="predictions",
-    document_id="unique()",
-    data={
-        "user_email": email,
-        "image_url": image_url,
-        "predicted_disease": disease,
-        "description": disease_desc,
-        "timestamp": datetime.now().isoformat()
-    }
-)
+# Session state for user
+if "user" not in st.session_state:
+    st.session_state.user = None
 
+def login_signup_ui():
+    st.sidebar.header("🔐 Login / Signup")
+    mode = st.sidebar.radio("Choose Mode", ["Login", "Signup"])
+    email = st.sidebar.text_input("Email")
+    password = st.sidebar.text_input("Password", type="password")
 
+    if st.sidebar.button(mode):
+        try:
+            if mode == "Signup":
+                account.create(user_id="unique()", email=email, password=password)
+                st.success("✅ Signup successful. Please login.")
+            else:
+                session = account.create_email_session(email=email, password=password)
+                user_info = account.get()
+                st.session_state.user = user_info
+                st.success(f"✅ Logged in as {user_info['email']}")
+        except AppwriteException as e:
+            st.error(f"❌ {e.message}")
 
+login_signup_ui()
+
+if not st.session_state.user:
+    st.stop()
+
+# Paths and models
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 HISTORY_PATH = os.path.join(BASE_DIR, "prediction_history.csv")
 
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-mobilenet_model = MobileNetV2(weights="imagenet")
-
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
 wikipedia.set_lang("en")
@@ -74,16 +78,39 @@ disease_info = {
     }
 }
 
+def log_prediction(user_email, image_name, prediction, confidence):
+    data = {
+        "user_email": user_email,
+        "image_name": image_name,
+        "predicted_disease": prediction,
+        "confidence": f"{confidence:.2f}%",
+        "timestamp": datetime.now().isoformat()
+    }
+    try:
+        databases.create_document(
+            database_id="your-db-id",
+            collection_id="predictions",
+            document_id="unique()",
+            data=data
+        )
+    except AppwriteException as e:
+        st.warning(f"📂 Appwrite DB Error: {e.message}")
 
-
-
-def log_prediction(image_name, prediction, confidence):
-    df = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_name, prediction, f"{confidence:.2f}%"]],
+    df = pd.DataFrame([[data['timestamp'], image_name, prediction, data['confidence']]],
                       columns=["Timestamp", "Image", "Prediction", "Confidence"])
     if not os.path.exists(HISTORY_PATH):
         df.to_csv(HISTORY_PATH, index=False)
     else:
         df.to_csv(HISTORY_PATH, mode='a', header=False, index=False)
+
+def preprocess_image(img):
+    img = img.resize((256, 256))
+    img_array = np.array(img)
+    if img_array.ndim != 3 or img_array.shape[-1] != 3:
+        raise ValueError("Image must have 3 color channels.")
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = img_array / 255.0
+    return img_array
 
 def show_history():
     if os.path.exists(HISTORY_PATH):
@@ -101,80 +128,44 @@ def show_history():
 
 def upload():
     dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
-
-    if dark_mode:
-        bg_style = "#121212"
-        text_color = "#e0e0e0"
-        desc_bg = "#1e1e1e"
-        pred_bg = "#1e1e1e"
-        pred_text = "#a5d6a7"
-    else:
-        bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
-        text_color = "#2E7D32"
-        desc_bg = "#ffffff"
-        pred_bg = "#ffffff"
-        pred_text = "#2e7d32"
+    bg_style = "#121212" if dark_mode else "linear-gradient(to right, #f0f9ff, #e0f7fa)"
+    text_color = "#e0e0e0" if dark_mode else "#2E7D32"
+    desc_bg = "#1e1e1e" if dark_mode else "#ffffff"
 
     st.markdown(f"""
     <style>
-        .reportview-container .main {{
-            background: {bg_style};
-            font-family: 'Segoe UI', sans-serif;
-            color: {text_color};
-        }}
-        h2, h3, h4 {{
-            color: {text_color};
-        }}
-        .stButton>button {{
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: background 0.3s ease;
-        }}
-        .stButton>button:hover {{
-            background-color: #45a049;
-        }}
+        .reportview-container .main {{ background: {bg_style}; color: {text_color}; }}
+        h2, h3, h4 {{ color: {text_color}; }}
     </style>
     <h2 style='text-align: center;'>🌿 Upload a Potato Leaf Image</h2>
-    <p style='text-align: center; color: #555;'>AI-powered leaf disease detection and treatment suggestions.</p>
+    <p style='text-align: center;'>AI-powered leaf disease detection and treatment suggestions.</p>
     """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     if uploaded_file is not None:
         try:
             img = Image.open(uploaded_file).convert("RGB")
-        except UnidentifiedImageError:
-            st.error("❌ Unable to read the image. Please upload a valid image file.")
-            return
-
-        st.image(img, caption="Uploaded Image", use_container_width=True)
-
-        
-        try:
+            st.image(img, caption="Uploaded Image", use_container_width=True)
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
             disease = class_names[class_idx]
             confidence = predictions[0][class_idx] * 100
 
-            log_prediction(uploaded_file.name, disease, confidence)
+            log_prediction(st.session_state.user['email'], uploaded_file.name, disease, confidence)
 
             st.markdown(f"""
-            <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+            <div style='padding:1rem;background:{desc_bg};border-radius:8px;'>
                 <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
-            </div>
-            <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
-                <h4>📖 Disease Description</h4>
+                <h4>📖 Description</h4>
                 <p>{disease_info[disease]['description']}</p>
-                <h4>💊 Treatment Suggestions</h4>
+                <h4>💊 Treatment</h4>
                 <p>{disease_info[disease]['treatment']}</p>
             </div>
             """, unsafe_allow_html=True)
         except Exception as e:
-            st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
+            st.error("⚠️ Failed to process image.")
 
 def camera():
     st.header("📸 Capture a Potato Leaf Image")
@@ -182,48 +173,27 @@ def camera():
     if camera_image is not None:
         try:
             img = Image.open(camera_image).convert("RGB")
-        except UnidentifiedImageError:
-            st.error("❌ Unable to read the captured image. Please try again.")
-            return
-
-        st.image(img, caption="Captured Image", use_container_width=True)
-
-        if not is_plant_image(img):
-            st.warning("⚠️ This doesn't seem like a potato plant or leaf. Suggestions: Try maize, tomato, or other crop images.")
-            return
-
-        try:
+            st.image(img, caption="Captured Image", use_container_width=True)
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
             disease = class_names[class_idx]
             confidence = predictions[0][class_idx] * 100
 
-            log_prediction("Camera Capture", disease, confidence)
+            log_prediction(st.session_state.user['email'], "Camera Capture", disease, confidence)
 
             st.markdown(f"""
-            <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+            <div style='padding:1rem;background:#fff;border-radius:8px;'>
                 <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
-            </div>
-            <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
-                <h4>📖 Disease Description</h4>
+                <h4>📖 Description</h4>
                 <p>{disease_info[disease]['description']}</p>
-                <h4>💊 Treatment Suggestions</h4>
+                <h4>💊 Treatment</h4>
                 <p>{disease_info[disease]['treatment']}</p>
             </div>
             """, unsafe_allow_html=True)
         except Exception as e:
-            st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
-
-def preprocess_image(img):
-    img = img.resize((256, 256))
-    img_array = np.array(img)
-    if img_array.ndim != 3 or img_array.shape[-1] != 3:
-        raise ValueError("Image must have 3 color channels.")
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = img_array / 255.0
-    return img_array
+            st.error("⚠️ Failed to process captured image.")
 
 if __name__ == "__main__":
     if "page" not in st.session_state:
@@ -234,9 +204,6 @@ if __name__ == "__main__":
 
     with st.sidebar:
         st.markdown("""
-        <style>
-        .sidebar .sidebar-content {padding: 1rem;}
-        </style>
         <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
         """, unsafe_allow_html=True)
         option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"], index=None)
@@ -251,5 +218,5 @@ if __name__ == "__main__":
         about()
 
     st.markdown("---")
-    st.info("📌 Navigate to different sections using the sidebar.")
-    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True) 
+    st.info("📌 Navigate using the sidebar.")
+    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True)

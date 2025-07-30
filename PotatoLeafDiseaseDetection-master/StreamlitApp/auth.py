@@ -1,4 +1,3 @@
-# auth.py
 import streamlit as st
 from appwrite_config import account
 from appwrite.exception import AppwriteException
@@ -10,7 +9,8 @@ def login():
     if st.button("Login"):
         try:
             session = account.create_email_session(email=email, password=password)
-            st.session_state["user"] = email
+            user = account.get()  # ✅ Get the full user info
+            st.session_state["user"] = user
             st.success("✅ Logged in successfully")
         except AppwriteException as e:
             st.error(f"Login failed: {e.message}")

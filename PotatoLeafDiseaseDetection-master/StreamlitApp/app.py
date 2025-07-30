@@ -12,15 +12,34 @@ import os
 import pandas as pd
 from datetime import datetime
 import wikipedia
-from appwrite.client import Client
-from appwrite.services.account import Account
-from appwrite.services.databases import Databases
+from appwrite_config import database, account
 
-client = Client()
+# Example: Use Appwrite here
+# You can now access database.create_document(), etc.
+account = Account(client)
 
-client.set_endpoint("https://cloud.appwrite.io/v1")  # Replace with your endpoint
-client.set_project("688a1b610038ca502d2f")                 # Replace with your project ID
-# Use set_key("API_KEY") only if you're using a server-side API key
+# To create a user
+account.create(email="email@example.com", password="securepassword")
+
+# To login
+account.create_email_session(email="email@example.com", password="securepassword")
+
+#Database
+databases = Databases(client)
+
+databases.create_document(
+    database_id="your-db-id",
+    collection_id="predictions",
+    document_id="unique()",
+    data={
+        "user_email": email,
+        "image_url": image_url,
+        "predicted_disease": disease,
+        "description": disease_desc,
+        "timestamp": datetime.now().isoformat()
+    }
+)
+
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

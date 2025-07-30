@@ -25,7 +25,7 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 def login_signup_ui():
-    st.sidebar.header("\U0001F510 Login / Signup")
+    st.sidebar.header("🔐 Login / Signup")
     mode = st.sidebar.radio("Choose Mode", ["Login", "Signup"])
     email = st.sidebar.text_input("Email")
     password = st.sidebar.text_input("Password", type="password")
@@ -38,15 +38,19 @@ def login_signup_ui():
         try:
             if mode == "Signup":
                 account.create(user_id=ID.unique(), email=email, password=password)
-                st.success("\u2705 Signup successful. Please login.")
+                st.success("✅ Signup successful. Please login.")
             else:
                 session = account.create_email_session(email=email, password=password)
                 user_info = account.get()
                 st.session_state.user = user_info
-                st.success(f"\u2705 Logged in as {user_info['email']}")
+                st.success(f"✅ Logged in as {user_info['email']}")
         except AppwriteException as e:
-            st.error(f"\u274C {e.message}")
+            st.error(f"❌ {e.message}")
 
+    if st.session_state.user:
+        if st.sidebar.button("Logout"):
+            st.session_state.user = None
+            st.experimental_rerun()
 
 login_signup_ui()
 
@@ -100,7 +104,7 @@ def log_prediction(user_email, image_name, prediction, confidence):
             data=data
         )
     except AppwriteException as e:
-        st.warning(f"\ud83d\udcc2 Appwrite DB Error: {e.message}")
+        st.warning(f"📂 Appwrite DB Error: {e.message}")
 
     df = pd.DataFrame([[data['timestamp'], image_name, prediction, data['confidence']]],
                       columns=["Timestamp", "Image", "Prediction", "Confidence"])
@@ -121,19 +125,19 @@ def preprocess_image(img):
 def show_history():
     if os.path.exists(HISTORY_PATH):
         df = pd.read_csv(HISTORY_PATH)
-        search = st.text_input("\U0001F50D Search by disease name")
+        search = st.text_input("🔍 Search by disease name")
         if search:
             df = df[df['Prediction'].str.contains(search, case=False, na=False)]
         st.dataframe(df[::-1], use_container_width=True)
 
-        st.markdown("### \U0001F4CA Prediction Statistics")
+        st.markdown("### 📊 Prediction Statistics")
         stats = df['Prediction'].value_counts()
         st.bar_chart(stats)
     else:
         st.info("No prediction history available yet.")
 
 def upload():
-    dark_mode = st.sidebar.toggle("\U0001F319 Dark Mode", value=False)
+    dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
     bg_style = "#121212" if dark_mode else "linear-gradient(to right, #f0f9ff, #e0f7fa)"
     text_color = "#e0e0e0" if dark_mode else "#2E7D32"
     desc_bg = "#1e1e1e" if dark_mode else "#ffffff"
@@ -143,7 +147,7 @@ def upload():
         .reportview-container .main {{ background: {bg_style}; color: {text_color}; }}
         h2, h3, h4 {{ color: {text_color}; }}
     </style>
-    <h2 style='text-align: center;'>\U0001F33F Upload a Potato Leaf Image</h2>
+    <h2 style='text-align: center;'>🌿 Upload a Potato Leaf Image</h2>
     <p style='text-align: center;'>AI-powered leaf disease detection and treatment suggestions.</p>
     """, unsafe_allow_html=True)
 
@@ -162,19 +166,19 @@ def upload():
 
             st.markdown(f"""
             <div style='padding:1rem;background:{desc_bg};border-radius:8px;'>
-                <h3>\U0001F9EA Prediction: {disease}</h3>
+                <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
-                <h4>\U0001F4D6 Description</h4>
+                <h4>📖 Description</h4>
                 <p>{disease_info[disease]['description']}</p>
-                <h4>\U0001F48A Treatment</h4>
+                <h4>💊 Treatment</h4>
                 <p>{disease_info[disease]['treatment']}</p>
             </div>
             """, unsafe_allow_html=True)
         except Exception as e:
-            st.error("\u26A0\uFE0F Failed to process image.")
+            st.error("⚠️ Failed to process image.")
 
 def camera():
-    st.header("\U0001F4F8 Capture a Potato Leaf Image")
+    st.header("📸 Capture a Potato Leaf Image")
     camera_image = st.camera_input("")
     if camera_image is not None:
         try:
@@ -190,16 +194,16 @@ def camera():
 
             st.markdown(f"""
             <div style='padding:1rem;background:#fff;border-radius:8px;'>
-                <h3>\U0001F9EA Prediction: {disease}</h3>
+                <h3>🧪 Prediction: {disease}</h3>
                 <p><strong>Confidence:</strong> {confidence:.2f}%</p>
-                <h4>\U0001F4D6 Description</h4>
+                <h4>📖 Description</h4>
                 <p>{disease_info[disease]['description']}</p>
-                <h4>\U0001F48A Treatment</h4>
+                <h4>💊 Treatment</h4>
                 <p>{disease_info[disease]['treatment']}</p>
             </div>
             """, unsafe_allow_html=True)
         except Exception as e:
-            st.error("\u26A0\uFE0F Failed to process captured image.")
+            st.error("⚠️ Failed to process captured image.")
 
 if __name__ == "__main__":
     if "page" not in st.session_state:
@@ -210,7 +214,7 @@ if __name__ == "__main__":
 
     with st.sidebar:
         st.markdown("""
-        <h3 style='color:#2e7d32;'>\U0001F33F Navigation</h3>
+        <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
         """, unsafe_allow_html=True)
         option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"], index=None)
 
@@ -224,5 +228,5 @@ if __name__ == "__main__":
         about()
 
     st.markdown("---")
-    st.info("\ud83d\udccc Navigate using the sidebar.")
+    st.info("📌 Navigate using the sidebar.")
     st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh Parmar</p>", unsafe_allow_html=True)

@@ -89,8 +89,8 @@ def log_prediction(user_email, image_name, prediction, confidence):
     }
     try:
         databases.create_document(
-            database_id="your-db-id",
-            collection_id="predictions",
+            database_id="your-db-id",  # Replace with actual Appwrite DB ID
+            collection_id="predictions",  # Replace with your collection ID
             document_id=ID.unique(),
             data=data
         )

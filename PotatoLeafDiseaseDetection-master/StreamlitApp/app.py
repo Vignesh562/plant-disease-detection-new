@@ -31,6 +31,10 @@ def login_signup_ui():
     password = st.sidebar.text_input("Password", type="password")
 
     if st.sidebar.button(mode):
+        if not email or not password:
+            st.warning("Please enter both email and password.")
+            return
+
         try:
             if mode == "Signup":
                 account.create(user_id=ID.unique(), email=email, password=password)
@@ -42,6 +46,7 @@ def login_signup_ui():
                 st.success(f"\u2705 Logged in as {user_info['email']}")
         except AppwriteException as e:
             st.error(f"\u274C {e.message}")
+
 
 login_signup_ui()
 

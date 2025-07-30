@@ -12,6 +12,16 @@ import os
 import pandas as pd
 from datetime import datetime
 import wikipedia
+from appwrite.client import Client
+from appwrite.services.account import Account
+from appwrite.services.databases import Databases
+
+client = Client()
+
+client.set_endpoint("https://cloud.appwrite.io/v1")  # Replace with your endpoint
+client.set_project("688a1b610038ca502d2f")                 # Replace with your project ID
+# Use set_key("API_KEY") only if you're using a server-side API key
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")

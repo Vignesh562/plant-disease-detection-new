@@ -6,9 +6,10 @@ from appwrite.services.account import Account
 # Initialize Appwrite client
 client = Client()
 
-client.set_endpoint("https://cloud.appwrite.io/v1")  # Do not change
-client.set_project("your_actual_project_id")  # Replace with your real project ID
-client.set_key("your_api_key")  # Secure key for server access (will guide on creating)
+client.set_endpoint("https://fra.cloud.appwrite.io/v1")  # ✅ Use your correct endpoint
+client.set_project("688a1b610038ca502d2f")               # ✅ Use your correct project ID
+
+
 
 # Setup services
 account = Account(client)

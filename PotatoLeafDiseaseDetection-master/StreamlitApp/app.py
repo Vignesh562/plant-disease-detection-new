@@ -22,30 +22,28 @@ APPWRITE_COLLECTION_ID = "688a1ed30009b55657c9"
 # ------------------ Authenticator User Credentials -------------------
 CREDENTIALS_PATH = 'credentials.yaml'   # This file will be created/used locally
 
-# Try to load existing credentials or start fresh
 if os.path.exists(CREDENTIALS_PATH):
     with open(CREDENTIALS_PATH) as file:
         config = yaml.load(file, Loader=SafeLoader)
 else:
     config = {"credentials": {"usernames": {}}}
 
-# Create the authenticator object
 authenticator = stauth.Authenticate(
     config['credentials'],
     "plant_app_cookie", "abcdef", cookie_expiry_days=7,
     preauthorized=[]
 )
 
-# Display login and sign up
-authenticator.login('Login', 'main')
+# Display login and sign up with correct 'location' parameter
+authenticator.login('Login', location='main')
 authenticator.register_user('Sign up', preauthorization=False)
 
 # ---------------------- Authentication Logic -------------------------
 if st.session_state["authentication_status"]:
-    authenticator.logout("Logout", "sidebar")
+    authenticator.logout("Logout", location='sidebar')
     st.success(f"Welcome {st.session_state['name']}!")
 
-    # Save credentials if a new user was created
+    # Save credentials if new user signs up
     with open(CREDENTIALS_PATH, "w") as file:
         yaml.dump(config, file, default_flow_style=False)
 else:
@@ -95,7 +93,7 @@ def save_prediction(pred_class, confidence):
             collection_id=APPWRITE_COLLECTION_ID,
             document_id='unique()',
             data={
-                "user": st.session_state["username"],  # comes from authenticator
+                "user": st.session_state["username"],  # Comes from authenticator
                 "prediction": pred_class,
                 "confidence": confidence,
                 "timestamp": str(datetime.now()),

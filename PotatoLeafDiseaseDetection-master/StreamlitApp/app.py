@@ -10,15 +10,11 @@ import os
 import pandas as pd
 from datetime import datetime
 import wikipedia
-from appwrite_config import client
-from appwrite.services.account import Account
-from appwrite.services.databases import Databases
+from appwrite_config import client, account, database as databases
 from appwrite.id import ID
 from appwrite.exception import AppwriteException
 
-# Appwrite setup
-account = Account(client)
-databases = Databases(client)
+
 
 # Session state for user
 if "user" not in st.session_state:

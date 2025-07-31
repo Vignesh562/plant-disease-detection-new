@@ -7,20 +7,44 @@ from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from Home import home
 from About import about
-import os 
+from appwrite.client import Client
+from appwrite.services.account import Account
+from appwrite.services.databases import Databases
+from datetime import datetime
+import os
 
+# Appwrite Initialization
+client = Client()
+client.set_endpoint(st.secrets["appwrite"]["api_endpoint"])
+client.set_project(st.secrets["appwrite"]["project_id"])
+account = Account(client)
+db = Databases(client)
+
+# --- Authentication ---
+if "login" not in st.session_state:
+    st.session_state["login"] = False
+
+if not st.session_state["login"]:
+    st.title("Login to continue")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        try:
+            session = account.create_email_session(email, password)
+            st.session_state["login"] = True
+            st.session_state["user_id"] = session["userId"]
+            st.success("Logged in.")
+        except Exception as e:
+            st.error(f"Login failed: {str(e)}")
+    st.stop()
+
+# --- Model and Helper Initialization ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
-
-# Load the trained custom CNN model without compiling
-model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# Load MobileNetV2 for plant/leaf validation
-mobilenet_model = MobileNetV2(weights="imagenet")
-
+model = tf.keras.models.load_model(MODEL_PATH, compile=False)  # Custom disease model
+mobilenet_model = MobileNetV2(weights="imagenet")              # Plant classifier (ImageNet)
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
-# Check if image is likely a plant using MobileNetV2
 PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 def is_plant_image(img):
@@ -28,13 +52,38 @@ def is_plant_image(img):
     img_array = image.img_to_array(img_resized)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = preprocess_input(img_array)
-
     preds = mobilenet_model.predict(img_array, verbose=0)
     decoded = decode_predictions(preds, top=5)[0]
     labels = [label.lower() for (_, label, _) in decoded]
-    if any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels):
-        return True
-    return False
+    return any(any(keyword in label for keyword in PLANT_KEYWORDS) for label in labels)
+
+def preprocess_image(img):
+    img = img.resize((256, 256))
+    img_array = np.array(img)
+    if img_array.ndim != 3 or img_array.shape[-1] != 3:
+        raise ValueError("Image must have 3 color channels.")
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = img_array / 255.0
+    return img_array
+
+def save_prediction(pred_class, confidence):
+    try:
+        db.create_document(
+            database_id=st.secrets["appwrite"]["database_id"],
+            collection_id=st.secrets["appwrite"]["collection_id"],
+            document_id='unique()',
+            data={
+                "user": st.session_state["user_id"],
+                "prediction": pred_class,
+                "confidence": confidence,
+                "timestamp": str(datetime.now()),
+            }
+        )
+        st.success("Result saved!")
+        del st.session_state["prediction"]
+        del st.session_state["confidence"]
+    except Exception as e:
+        st.warning(f"Failed to save: {str(e)}")
 
 def upload():
     uploaded_file = st.file_uploader("Upload a potato leaf image", type=["jpg", "png", "jpeg"])
@@ -55,12 +104,18 @@ def upload():
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
+            pred_class = class_names[class_idx]
+            confidence = float(predictions[0][class_idx]) * 100
+
+            st.session_state["prediction"] = pred_class
+            st.session_state["confidence"] = confidence
 
             st.subheader("Prediction Results")
-            st.success(f"Prediction: {class_names[class_idx]}")
-            st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
+            st.success(f"Prediction: {pred_class}")
+            st.info(f"Confidence: {confidence:.2f}%")
+
         except Exception as e:
-            st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
+            st.error("⚠️ Error: " + str(e))
 
 def camera():
     camera_image = st.camera_input("Capture a potato leaf image")
@@ -81,22 +136,20 @@ def camera():
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
+            pred_class = class_names[class_idx]
+            confidence = float(predictions[0][class_idx]) * 100
+
+            st.session_state["prediction"] = pred_class
+            st.session_state["confidence"] = confidence
 
             st.subheader("Prediction Results")
-            st.success(f"Prediction: {class_names[class_idx]}")
-            st.info(f"Confidence: {predictions[0][class_idx]*100:.2f}%")
+            st.success(f"Prediction: {pred_class}")
+            st.info(f"Confidence: {confidence:.2f}%")
+
         except Exception as e:
-            st.error("⚠️ Something went wrong while processing the image. Please try a different image.")
+            st.error("⚠️ Error: " + str(e))
 
-def preprocess_image(img):
-    img = img.resize((256, 256))
-    img_array = np.array(img)
-    if img_array.ndim != 3 or img_array.shape[-1] != 3:
-        raise ValueError("Image must have 3 color channels.")
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = img_array / 255.0
-    return img_array
-
+# --- Main Navigation and App Logic ---
 if __name__ == "__main__":
     if "page" not in st.session_state:
         st.session_state.page = "home"
@@ -113,6 +166,12 @@ if __name__ == "__main__":
         camera()
     elif option == "About":
         about()
+
+    # Show "Save prediction" button only if a prediction is available
+    if "prediction" in st.session_state and "confidence" in st.session_state:
+        st.markdown("---")
+        if st.button("Save prediction"):
+            save_prediction(st.session_state["prediction"], st.session_state["confidence"])
 
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")

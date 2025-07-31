@@ -6,21 +6,22 @@ from appwrite.client import Client
 from appwrite.services.databases import Databases
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
+from tensorflow.keras.applications.mobilenet_v2 import (
+    MobileNetV2, preprocess_input, decode_predictions
+)
 from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime
 import os
 
-# -------------------------- Appwrite CONFIG --------------------------
+# ---- Appwrite CONFIG (FILL THESE REAL VALUES!) ----
 APPWRITE_API_ENDPOINT = "https://fra.cloud.appwrite.io/v1"
 APPWRITE_PROJECT_ID = "688a1b610038ca502d2f"
 APPWRITE_DATABASE_ID = "688a1e470000b53815e8"
 APPWRITE_COLLECTION_ID = "688a1ed30009b55657c9"
-# ---------------------------------------------------------------------
 
-# ------------------ Authenticator User Credentials -------------------
-CREDENTIALS_PATH = 'credentials.yaml'   # This file will be created/used locally
+# ---- Authenticator Credentials ----
+CREDENTIALS_PATH = 'credentials.yaml'  # Local file
 
 if os.path.exists(CREDENTIALS_PATH):
     with open(CREDENTIALS_PATH) as file:
@@ -34,32 +35,30 @@ authenticator = stauth.Authenticate(
     preauthorized=[]
 )
 
-# Display login and sign up (using correct argument for current st-authenticator versions)
-authenticator.login('Login', location='main')
+# --- Proper login for streamlit-authenticator v0.3.1+ ---
+name, authentication_status, username = authenticator.login('main')
 authenticator.register_user('Sign up', preauthorization=False)
 
-# ---------------------- Authentication Logic -------------------------
-if st.session_state["authentication_status"]:
-    authenticator.logout("Logout", location='sidebar')
-    st.success(f"Welcome {st.session_state['name']}!")
-
+if authentication_status:
+    authenticator.logout('Logout', 'sidebar')
+    st.success(f"Welcome {name}!")
     # Save credentials if new user signs up
     with open(CREDENTIALS_PATH, "w") as file:
         yaml.dump(config, file, default_flow_style=False)
-else:
-    if st.session_state["authentication_status"] is False:
-        st.error('Username/password is incorrect')
-    elif st.session_state["authentication_status"] is None:
-        st.warning('Please log in or sign up as a new user.')
+elif authentication_status is False:
+    st.error('Username/password is incorrect')
+    st.stop()
+elif authentication_status is None:
+    st.warning('Please log in or sign up as a new user.')
     st.stop()
 
-# ----------------------- Appwrite Setup ------------------------------
+# ---- Appwrite Setup ----
 client = Client()
 client.set_endpoint(APPWRITE_API_ENDPOINT)
 client.set_project(APPWRITE_PROJECT_ID)
 db = Databases(client)
 
-# --------------------- ML Model Setup --------------------
+# ---- ML Model Setup ----
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
@@ -93,7 +92,7 @@ def save_prediction(pred_class, confidence):
             collection_id=APPWRITE_COLLECTION_ID,
             document_id='unique()',
             data={
-                "user": st.session_state["username"],  # Comes from authenticator
+                "user": username,
                 "prediction": pred_class,
                 "confidence": confidence,
                 "timestamp": str(datetime.now()),
@@ -157,7 +156,7 @@ def camera():
         except Exception as e:
             st.error("⚠️ Error: " + str(e))
 
-# -------------------- Main App Navigation -------------------
+# ---- Main App Navigation ----
 st.sidebar.header("Options")
 option = st.sidebar.selectbox("Choose Your Work", ["Upload Image", "Use Camera"], index=None)
 

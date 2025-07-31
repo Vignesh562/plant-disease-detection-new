@@ -13,10 +13,19 @@ from appwrite.services.databases import Databases
 from datetime import datetime
 import os
 
-# Appwrite Initialization
+# --- Appwrite Initialization with Secrets Check ---
+try:
+    api_endpoint = st.secrets["appwrite"]["api_endpoint"]
+    project_id = st.secrets["appwrite"]["project_id"]
+    db_id = st.secrets["appwrite"]["database_id"]
+    coll_id = st.secrets["appwrite"]["collection_id"]
+except KeyError as e:
+    st.error("Missing Appwrite secrets! Please set up `.streamlit/secrets.toml` correctly.")
+    st.stop()
+
 client = Client()
-client.set_endpoint(st.secrets["appwrite"]["api_endpoint"])
-client.set_project(st.secrets["appwrite"]["project_id"])
+client.set_endpoint(api_endpoint)
+client.set_project(project_id)
 account = Account(client)
 db = Databases(client)
 
@@ -69,8 +78,8 @@ def preprocess_image(img):
 def save_prediction(pred_class, confidence):
     try:
         db.create_document(
-            database_id=st.secrets["appwrite"]["database_id"],
-            collection_id=st.secrets["appwrite"]["collection_id"],
+            database_id=db_id,
+            collection_id=coll_id,
             document_id='unique()',
             data={
                 "user": st.session_state["user_id"],

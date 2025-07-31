@@ -6,3 +6,4 @@ matplotlib
 pillow
 wikipedia
 appwrite
+PyYAML

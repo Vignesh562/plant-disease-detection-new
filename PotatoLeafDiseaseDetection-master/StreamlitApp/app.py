@@ -42,7 +42,7 @@ def login_signup_ui():
                 st.session_state.user = user_info
                 st.success(f"✅ Logged in as {user_info['email']}")
         except AppwriteException as e:
-            st.error(f"❌ {e.message}")
+             st.error(f"❌ {e.message or str(e)}")
 
     if st.session_state.user:
         if st.sidebar.button("Logout"):

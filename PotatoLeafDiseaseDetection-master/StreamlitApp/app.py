@@ -34,7 +34,7 @@ authenticator = stauth.Authenticate(
     preauthorized=[]
 )
 
-# Display login and sign up with correct 'location' parameter
+# Display login and sign up (using correct argument for current st-authenticator versions)
 authenticator.login('Login', location='main')
 authenticator.register_user('Sign up', preauthorization=False)
 

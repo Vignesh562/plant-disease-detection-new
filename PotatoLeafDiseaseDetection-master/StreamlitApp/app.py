@@ -1,55 +1,72 @@
 import streamlit as st
+import streamlit_authenticator as stauth
+import yaml
+from yaml.loader import SafeLoader
+from appwrite.client import Client
+from appwrite.services.databases import Databases
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 from tensorflow.keras.preprocessing import image
 from PIL import Image, UnidentifiedImageError
-from Home import home
-from About import about
-from appwrite.client import Client
-from appwrite.services.account import Account
-from appwrite.services.databases import Databases
 from datetime import datetime
 import os
 
-# --------- Insecure: Appwrite credentials directly in code ---------
+# -------------------------- Appwrite CONFIG --------------------------
 APPWRITE_API_ENDPOINT = "https://fra.cloud.appwrite.io/v1"
 APPWRITE_PROJECT_ID = "688a1b610038ca502d2f"
 APPWRITE_DATABASE_ID = "688a1e470000b53815e8"
 APPWRITE_COLLECTION_ID = "688a1ed30009b55657c9"
-# ------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
+# ------------------ Authenticator User Credentials -------------------
+CREDENTIALS_PATH = 'credentials.yaml'   # This file will be created/used locally
+
+# Try to load existing credentials or start fresh
+if os.path.exists(CREDENTIALS_PATH):
+    with open(CREDENTIALS_PATH) as file:
+        config = yaml.load(file, Loader=SafeLoader)
+else:
+    config = {"credentials": {"usernames": {}}}
+
+# Create the authenticator object
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    "plant_app_cookie", "abcdef", cookie_expiry_days=7,
+    preauthorized=[]
+)
+
+# Display login and sign up
+authenticator.login('Login', 'main')
+authenticator.register_user('Sign up', preauthorization=False)
+
+# ---------------------- Authentication Logic -------------------------
+if st.session_state["authentication_status"]:
+    authenticator.logout("Logout", "sidebar")
+    st.success(f"Welcome {st.session_state['name']}!")
+
+    # Save credentials if a new user was created
+    with open(CREDENTIALS_PATH, "w") as file:
+        yaml.dump(config, file, default_flow_style=False)
+else:
+    if st.session_state["authentication_status"] is False:
+        st.error('Username/password is incorrect')
+    elif st.session_state["authentication_status"] is None:
+        st.warning('Please log in or sign up as a new user.')
+    st.stop()
+
+# ----------------------- Appwrite Setup ------------------------------
 client = Client()
 client.set_endpoint(APPWRITE_API_ENDPOINT)
 client.set_project(APPWRITE_PROJECT_ID)
-account = Account(client)
 db = Databases(client)
 
-# --- Authentication ---
-if "login" not in st.session_state:
-    st.session_state["login"] = False
-
-if not st.session_state["login"]:
-    st.title("Login to continue")
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        try:
-            session = account.create_email_session(email, password)
-            st.session_state["login"] = True
-            st.session_state["user_id"] = session["userId"]
-            st.success("Logged in.")
-        except Exception as e:
-            st.error(f"Login failed: {str(e)}")
-    st.stop()
-
-# --- Model and Helper Initialization ---
+# --------------------- ML Model Setup --------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
-model = tf.keras.models.load_model(MODEL_PATH, compile=False)  # Custom disease model
+model = tf.keras.models.load_model(MODEL_PATH, compile=False)
 mobilenet_model = MobileNetV2(weights="imagenet")
 class_names = ["Early Blight", "Late Blight", "Healthy"]
-
 PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
 
 def is_plant_image(img):
@@ -78,7 +95,7 @@ def save_prediction(pred_class, confidence):
             collection_id=APPWRITE_COLLECTION_ID,
             document_id='unique()',
             data={
-                "user": st.session_state["user_id"],
+                "user": st.session_state["username"],  # comes from authenticator
                 "prediction": pred_class,
                 "confidence": confidence,
                 "timestamp": str(datetime.now()),
@@ -98,27 +115,21 @@ def upload():
         except UnidentifiedImageError:
             st.error("❌ Unable to read the image. Please upload a valid image file.")
             return
-
         st.image(img, caption="Uploaded Image", use_container_width=True)
-
         if not is_plant_image(img):
             st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
-
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
             pred_class = class_names[class_idx]
             confidence = float(predictions[0][class_idx]) * 100
-
             st.session_state["prediction"] = pred_class
             st.session_state["confidence"] = confidence
-
             st.subheader("Prediction Results")
             st.success(f"Prediction: {pred_class}")
             st.info(f"Confidence: {confidence:.2f}%")
-
         except Exception as e:
             st.error("⚠️ Error: " + str(e))
 
@@ -130,56 +141,38 @@ def camera():
         except UnidentifiedImageError:
             st.error("❌ Unable to read the captured image. Please try again.")
             return
-
         st.image(img, caption="Captured Image", use_container_width=True)
-
         if not is_plant_image(img):
             st.error("❌ This doesn't look like a valid plant leaf. Please upload a clear potato leaf image.")
             return
-
         try:
             img_array = preprocess_image(img)
             predictions = model.predict(img_array, verbose=0)
             class_idx = np.argmax(predictions[0])
             pred_class = class_names[class_idx]
             confidence = float(predictions[0][class_idx]) * 100
-
             st.session_state["prediction"] = pred_class
             st.session_state["confidence"] = confidence
-
             st.subheader("Prediction Results")
             st.success(f"Prediction: {pred_class}")
             st.info(f"Confidence: {confidence:.2f}%")
-
         except Exception as e:
             st.error("⚠️ Error: " + str(e))
 
-if __name__ == "__main__":
-    if "page" not in st.session_state:
-        st.session_state.page = "home"
+# -------------------- Main App Navigation -------------------
+st.sidebar.header("Options")
+option = st.sidebar.selectbox("Choose Your Work", ["Upload Image", "Use Camera"], index=None)
 
-    if st.session_state.page == "home":
-        home()
+if option == "Upload Image":
+    upload()
+elif option == "Use Camera":
+    camera()
 
-    st.sidebar.header("Options")
-    option = st.sidebar.selectbox(
-        "Choose Your Work",
-        ["Upload Image", "Use Camera", "About"],
-        index=None
-    )
-
-    if option == "Upload Image":
-        upload()
-    elif option == "Use Camera":
-        camera()
-    elif option == "About":
-        about()
-
-    if "prediction" in st.session_state and "confidence" in st.session_state:
-        st.markdown("---")
-        if st.button("Save prediction"):
-            save_prediction(st.session_state["prediction"], st.session_state["confidence"])
-
+if "prediction" in st.session_state and "confidence" in st.session_state:
     st.markdown("---")
-    st.info("📌 Navigate to different sections using the sidebar.")
-    st.write("Made with ❤️ by Vignesh Parmar")
+    if st.button("Save prediction"):
+        save_prediction(st.session_state["prediction"], st.session_state["confidence"])
+
+st.markdown("---")
+st.info("📌 Navigate to different sections using the sidebar.")
+st.write("Made with ❤️ by Vignesh Parmar")

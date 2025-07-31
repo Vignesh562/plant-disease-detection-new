@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import cv2
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 from tensorflow.keras.preprocessing import image
@@ -13,19 +12,16 @@ from appwrite.services.databases import Databases
 from datetime import datetime
 import os
 
-# --- Appwrite Initialization with Secrets Check ---
-try:
-    api_endpoint = st.secrets["appwrite"]["api_endpoint"]
-    project_id = st.secrets["appwrite"]["project_id"]
-    db_id = st.secrets["appwrite"]["database_id"]
-    coll_id = st.secrets["appwrite"]["collection_id"]
-except KeyError as e:
-    st.error("Missing Appwrite secrets! Please set up `.streamlit/secrets.toml` correctly.")
-    st.stop()
+# --------- Insecure: Appwrite credentials directly in code ---------
+APPWRITE_API_ENDPOINT = "https://fra.cloud.appwrite.io/v1"
+APPWRITE_PROJECT_ID = "688a1b610038ca502d2f"
+APPWRITE_DATABASE_ID = "688a1e470000b53815e8"
+APPWRITE_COLLECTION_ID = "688a1ed30009b55657c9"
+# ------------------------------------------------------------------
 
 client = Client()
-client.set_endpoint(api_endpoint)
-client.set_project(project_id)
+client.set_endpoint(APPWRITE_API_ENDPOINT)
+client.set_project(APPWRITE_PROJECT_ID)
 account = Account(client)
 db = Databases(client)
 
@@ -51,7 +47,7 @@ if not st.session_state["login"]:
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model", "potatoes.h5")
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)  # Custom disease model
-mobilenet_model = MobileNetV2(weights="imagenet")              # Plant classifier (ImageNet)
+mobilenet_model = MobileNetV2(weights="imagenet")
 class_names = ["Early Blight", "Late Blight", "Healthy"]
 
 PLANT_KEYWORDS = ["plant", "leaf", "tree", "flower", "maize", "corn", "potato"]
@@ -78,8 +74,8 @@ def preprocess_image(img):
 def save_prediction(pred_class, confidence):
     try:
         db.create_document(
-            database_id=db_id,
-            collection_id=coll_id,
+            database_id=APPWRITE_DATABASE_ID,
+            collection_id=APPWRITE_COLLECTION_ID,
             document_id='unique()',
             data={
                 "user": st.session_state["user_id"],
@@ -158,7 +154,6 @@ def camera():
         except Exception as e:
             st.error("⚠️ Error: " + str(e))
 
-# --- Main Navigation and App Logic ---
 if __name__ == "__main__":
     if "page" not in st.session_state:
         st.session_state.page = "home"
@@ -167,7 +162,11 @@ if __name__ == "__main__":
         home()
 
     st.sidebar.header("Options")
-    option = st.sidebar.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "About"], index=None)
+    option = st.sidebar.selectbox(
+        "Choose Your Work",
+        ["Upload Image", "Use Camera", "About"],
+        index=None
+    )
 
     if option == "Upload Image":
         upload()
@@ -176,7 +175,6 @@ if __name__ == "__main__":
     elif option == "About":
         about()
 
-    # Show "Save prediction" button only if a prediction is available
     if "prediction" in st.session_state and "confidence" in st.session_state:
         st.markdown("---")
         if st.button("Save prediction"):

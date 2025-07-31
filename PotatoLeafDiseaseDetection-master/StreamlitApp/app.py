@@ -41,6 +41,7 @@ def login_signup_ui():
                 st.success("✅ Signup successful. Please login.")
             else:
                 session = account.create_email_session(email=email, password=password)
+                client.set_session(session["$id"])  # Important line to avoid 401 error
                 user_info = account.get()
                 st.session_state.user = user_info
                 st.success(f"✅ Logged in as {user_info['email']}")

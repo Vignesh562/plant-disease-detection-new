@@ -7,3 +7,4 @@ pillow
 wikipedia
 appwrite
 PyYAML
+streamlit-authenticator

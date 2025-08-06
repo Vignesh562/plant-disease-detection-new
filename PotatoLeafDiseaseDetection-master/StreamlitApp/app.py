@@ -65,7 +65,7 @@ def show_history():
             df = df[df['Prediction'].str.contains(search, case=False, na=False)]
         st.dataframe(df[::-1], use_container_width=True)
 
-        st.markdown("### 📊 Prediction Statistics")
+        st.markdown("### Prediction Statistics")
         stats = df['Prediction'].value_counts()
         st.bar_chart(stats)
     else:
@@ -82,7 +82,7 @@ def preprocess_image(img: Image.Image):
 
 def upload():
     # Dark mode toggle
-    dark_mode = st.sidebar.checkbox("🌙 Dark Mode", value=False)
+    dark_mode = st.sidebar.checkbox("Dark Mode", value=False)
 
     if dark_mode:
         bg_style = "#121212"
@@ -117,7 +117,7 @@ def upload():
                 background-color: #45a049;
             }}
         </style>
-        <h2 style='text-align: center;'>🌿 Upload a Potato Leaf Image</h2>
+        <h2 style='text-align: center;'>Upload a Potato Leaf Image</h2>
         <p style='text-align: center; color: #555;'>AI-powered leaf disease detection and treatment suggestions.</p>
         """, unsafe_allow_html=True)
 
@@ -142,18 +142,18 @@ def upload():
 
             st.markdown(f"""
                 <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
-                    <h3>🧪 Prediction: {disease}</h3>
+                    <h3>Prediction: {disease}</h3>
                     <p><strong>Confidence:</strong> {confidence:.2f}%</p>
                 </div>
                 <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
-                    <h4>📖 Disease Description</h4>
+                    <h4>Disease Description</h4>
                     <p>{disease_info[disease]['description']}</p>
-                    <h4>💊 Treatment Suggestions</h4>
+                    <h4>Treatment Suggestions</h4>
                     <p>{disease_info[disease]['treatment']}</p>
                 </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"⚠️ Something went wrong while processing the image. Please try a different image.\nError: {e}")
+            st.error(f"⚠️Something went wrong while processing the image. Please try a different image.\nError: {e}")
 
 def camera():
     st.header("📸 Capture a Potato Leaf Image")
@@ -178,7 +178,7 @@ def camera():
 
             log_prediction("Camera Capture", disease, confidence)
 
-            dark_mode = st.sidebar.checkbox("🌙 Dark Mode", value=False)
+            dark_mode = st.sidebar.checkbox("Dark Mode", value=False)
             if dark_mode:
                 desc_bg = "#1e1e1e"
                 pred_text = "#a5d6a7"
@@ -188,13 +188,13 @@ def camera():
 
             st.markdown(f"""
                 <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
-                    <h3>🧪 Prediction: {disease}</h3>
+                    <h3>Prediction: {disease}</h3>
                     <p><strong>Confidence:</strong> {confidence:.2f}%</p>
                 </div>
                 <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
-                    <h4>📖 Disease Description</h4>
+                    <h4>Disease Description</h4>
                     <p>{disease_info[disease]['description']}</p>
-                    <h4>💊 Treatment Suggestions</h4>
+                    <h4>Treatment Suggestions</h4>
                     <p>{disease_info[disease]['treatment']}</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -213,7 +213,7 @@ if __name__ == "__main__":
             <style>
                 .sidebar .sidebar-content {padding: 1rem;}
             </style>
-            <h3 style='color:#2e7d32;'>🌿 Navigation</h3>
+            <h3 style='color:#2e7d32;'>Navigation</h3>
             """, unsafe_allow_html=True)
 
         option = st.selectbox("Choose Your Work", ["Upload Image", "Use Camera", "View History", "About"])

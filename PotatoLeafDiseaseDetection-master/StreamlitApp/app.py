@@ -60,7 +60,7 @@ def log_prediction(image_name, prediction, confidence):
 def show_history():
     if os.path.exists(HISTORY_PATH):
         df = pd.read_csv(HISTORY_PATH)
-        search = st.text_input("🔍 Search by disease name")
+        search = st.text_input("Search by disease name")
         if search:
             df = df[df['Prediction'].str.contains(search, case=False, na=False)]
         st.dataframe(df[::-1], use_container_width=True)
@@ -126,7 +126,7 @@ def upload():
         try:
             img = Image.open(uploaded_file).convert("RGB")
         except UnidentifiedImageError:
-            st.error("❌ Unable to read the image. Please upload a valid image file.")
+            st.error("Unable to read the image. Please upload a valid image file.")
             return
 
         st.image(img, caption="Uploaded Image", use_container_width=True)
@@ -153,10 +153,10 @@ def upload():
                 </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"⚠️Something went wrong while processing the image. Please try a different image.\nError: {e}")
+            st.error(f"⚠Something went wrong while processing the image. Please try a different image.\nError: {e}")
 
 def camera():
-    st.header("📸 Capture a Potato Leaf Image")
+    st.header("Capture a Potato Leaf Image")
 
     camera_image = st.camera_input("")
 
@@ -164,7 +164,7 @@ def camera():
         try:
             img = Image.open(camera_image).convert("RGB")
         except UnidentifiedImageError:
-            st.error("❌ Unable to read the captured image. Please try again.")
+            st.error("Unable to read the captured image. Please try again.")
             return
 
         st.image(img, caption="Captured Image", use_container_width=True)
@@ -199,7 +199,7 @@ def camera():
                 </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"⚠️ Something went wrong while processing the image. Please try a different image.\nError: {e}")
+            st.error(f"⚠Something went wrong while processing the image. Please try a different image.\nError: {e}")
 
 if __name__ == "__main__":
     if "page" not in st.session_state:
@@ -229,4 +229,4 @@ if __name__ == "__main__":
 
     st.markdown("---")
     st.info("📌 Navigate to different sections using the sidebar.")
-    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh, Pankaj, Denial</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Made with ❤️ by Vignesh, Pankaj, Daniel</p>", unsafe_allow_html=True)

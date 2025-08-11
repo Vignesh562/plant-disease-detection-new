@@ -81,7 +81,7 @@ def preprocess_image(img: Image.Image):
 def upload():
     bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
     text_color = "#2E7D32"
-    desc_bg = "#ffffff"
+    desc_bg = "#f4f4f4"
     pred_text = "#2e7d32"
 
     st.markdown(f"""
@@ -130,11 +130,14 @@ def upload():
             log_prediction(uploaded_file.name, disease, confidence)
 
             st.markdown(f"""
-                <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+                <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text};
+                            border-left: 6px solid #66bb6a; border-radius: 8px;
+                            box-shadow: 2px 2px 5px #ccc;'>
                     <h3>Prediction: {disease}</h3>
                     <p><strong>Confidence:</strong> {confidence:.2f}%</p>
                 </div>
-                <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
+                <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem;
+                            border-radius: 8px; box-shadow: 1px 1px 3px #aaa; color: black;'>
                     <h4>Disease Description</h4>
                     <p>{disease_info[disease]['description']}</p>
                     <h4>Treatment Suggestions</h4>
@@ -167,15 +170,18 @@ def camera():
 
             log_prediction("Camera Capture", disease, confidence)
 
-            desc_bg = "#ffffff"
+            desc_bg = "#f4f4f4"
             pred_text = "#2e7d32"
 
             st.markdown(f"""
-                <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>
+                <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text};
+                            border-left: 6px solid #66bb6a; border-radius: 8px;
+                            box-shadow: 2px 2px 5px #ccc;'>
                     <h3>Prediction: {disease}</h3>
                     <p><strong>Confidence:</strong> {confidence:.2f}%</p>
                 </div>
-                <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem; border-radius: 8px; box-shadow: 1px 1px 3px #aaa;'>
+                <div style='margin-top: 1.5em; background: {desc_bg}; padding: 1rem;
+                            border-radius: 8px; box-shadow: 1px 1px 3px #aaa; color: black;'>
                     <h4>Disease Description</h4>
                     <p>{disease_info[disease]['description']}</p>
                     <h4>Treatment Suggestions</h4>

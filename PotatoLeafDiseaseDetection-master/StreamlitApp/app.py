@@ -26,14 +26,12 @@ def fetch_wiki_summary(title):
     try:
         return wikipedia.summary(title, sentences=2)
     except Exception:
-        # Fallback hardcoded description for known diseases
         fallback_descriptions = {
             "early blight": "Early blight is a common fungal disease affecting potatoes, characterized by dark spots on leaves and fruit, leading to reduced yield.",
             "late blight": "Late blight is a serious potato disease caused by Phytophthora infestans, resulting in rapid decay of leaves and tubers, often causing significant crop loss."
         }
         return fallback_descriptions.get(title.lower(), "No Wikipedia summary found.")
 
-# Disease info dict with fallback in place
 disease_info = {
     "Early Blight": {
         "description": fetch_wiki_summary("Early blight"),
@@ -81,19 +79,10 @@ def preprocess_image(img: Image.Image):
     return img_array
 
 def upload():
-    # Dark mode toggle
-    dark_mode = st.sidebar.checkbox("Dark Mode", value=False)
-
-    if dark_mode:
-        bg_style = "#121212"
-        text_color = "#e0e0e0"
-        desc_bg = "#1e1e1e"
-        pred_text = "#a5d6a7"
-    else:
-        bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
-        text_color = "#2E7D32"
-        desc_bg = "#ffffff"
-        pred_text = "#2e7d32"
+    bg_style = "linear-gradient(to right, #f0f9ff, #e0f7fa)"
+    text_color = "#2E7D32"
+    desc_bg = "#ffffff"
+    pred_text = "#2e7d32"
 
     st.markdown(f"""
         <style>
@@ -178,13 +167,8 @@ def camera():
 
             log_prediction("Camera Capture", disease, confidence)
 
-            dark_mode = st.sidebar.checkbox("Dark Mode", value=False)
-            if dark_mode:
-                desc_bg = "#1e1e1e"
-                pred_text = "#a5d6a7"
-            else:
-                desc_bg = "#ffffff"
-                pred_text = "#2e7d32"
+            desc_bg = "#ffffff"
+            pred_text = "#2e7d32"
 
             st.markdown(f"""
                 <div style='padding: 1.2rem; background: {desc_bg}; color: {pred_text}; border-left: 6px solid #66bb6a; border-radius: 8px; box-shadow: 2px 2px 5px #ccc;'>

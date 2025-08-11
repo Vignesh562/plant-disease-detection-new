@@ -1,4 +1,4 @@
-# Potato Leaf Disease Detection App
+# Plants Leaf Disease Detection App
 
 This application detects potato leaf diseases (Early Blight, Late Blight, or Healthy) using a trained deep learning model. It allows users to upload images, capture live images via webcam, or analyze real-time video streams for disease prediction. The app also provides visual Grad-CAM heatmaps to highlight areas of focus for predictions.
 

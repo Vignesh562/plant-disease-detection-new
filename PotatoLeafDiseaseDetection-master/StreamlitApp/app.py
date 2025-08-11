@@ -117,7 +117,7 @@ def upload():
                 background-color: #45a049;
             }}
         </style>
-        <h2 style='text-align: center;'>Upload a Potato Leaf Image</h2>
+        <h2 style='text-align: center;'>Upload a Plants Leaf Image</h2>
         <p style='text-align: center; color: #555;'>AI-powered leaf disease detection and treatment suggestions.</p>
         """, unsafe_allow_html=True)
 
